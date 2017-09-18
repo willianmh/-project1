@@ -54,8 +54,6 @@ int processarEntrada(char *entrada, unsigned tamanho) {
     pointerLine word_token;
 
     unsigned linha;
-    unsigned tamToken;
-
 
     for (int k = 0; k < tamanho-1; k++) {
         printf(" %d", entrada[k]);
