@@ -17,12 +17,11 @@ int isHexadecimal(char *palavra);
 
 int isDecimal(char *palavra);
 
-int isRotulo(char *palavra);
-
 int isNome(char *palavra);
 
-int isAtoF(char c);
 int isArgumento(char *palavra);
+int isAtoF(char c);
+
 void debbug(char *string);
 
 typedef struct tipoEachWord {
@@ -46,11 +45,13 @@ void imprimeLista(pointerLine inicio);
  */
 int processarEntrada(char *entrada, unsigned tamanho) {
     int i, j;
+    int erro;
     char caracter;
     char palavra[1000];
 
     // armazena em um lista uma linha de entrada
     pointerLine eachLine;
+    pointerLine word;
 
     unsigned linha;
 
@@ -66,6 +67,7 @@ int processarEntrada(char *entrada, unsigned tamanho) {
     eachLine = NULL; // lista vazia
     linha = 1;
     j = 0;
+    erro = 0;
 
     for (i = 0; i <= tamanho; i++) {
         caracter = entrada[i];
@@ -77,55 +79,54 @@ int processarEntrada(char *entrada, unsigned tamanho) {
         }
 
         // se tem quebra linha ou arquivo acaba
-        if(caracter == 10 || i >= tamanho){
-            linha++;
-            printf("linha: %d\n", linha);
+        if(caracter == 32 || caracter == 10 || i >= tamanho){
 
-            // coloca fim da palavra
-            palavra[j] = '\0';
+            palavra[j] = '\0'; // coloca fim
 
             // cria um token temporario e adiciona em uma lista
             if(strlen(palavra) > 0){
+
+                switch (isArgumento(palavra)){
+                    case 1:
+                        printf("é arg\n");
+                        for (word = eachLine; word->next ; word = word->next);
+                        if(word->palavra.tipo == Instrucao)
+                            break;
+                        fprintf(stderr, "ERRO GRAMATICAL: palavra na linha %d!", linha);
+                        erro = 1;
+                        break;
+                    case -1:
+                        fprintf(stderr, "ERRO LEXICO: palavra inválida na linha %d!", linha);
+                        erro = 1;
+                    default:
+                        break;
+
+                }
+
+
                 eachLine = insereToken(eachLine, palavra, linha);
                 if(eachLine == NULL){
                     fprintf(stderr, "ERRO LEXICO: palavra inválida na linha %d!", linha);
-                    i = tamanho + 2;
+                    erro = 1;
                 }
-                if(!verificaGramatica(eachLine, 1)) {
+                if(!verificaGramatica(eachLine, 0)) {
                     fprintf(stderr, "ERRO GRAMATICAL: palavra na linha %d!", linha);
-                    i = tamanho + 2;
+                    erro = 1;
                 }
             }
-
-
-            imprimeLista(eachLine);
-            eachLine = apagaLista(eachLine);
-
             j = 0;
+
+            if(caracter == 10 || i >= tamanho) {
+                imprimeLista(eachLine);
+                eachLine = apagaLista(eachLine);
+                linha++;
+            }
+
         // se continua a 'frase'
         } else {
-            // se a palavra acabou
-            if(caracter == 32){
-                palavra[j] = '\0'; // coloca fim
-
-                // cria um token temporario e adiciona em uma lista
-                if(strlen(palavra) > 0){
-                    eachLine = insereToken(eachLine, palavra, linha);
-                    if(eachLine == NULL){
-                        fprintf(stderr, "ERRO LEXICO: palavra inválida na linha %d!", linha);
-                        i = tamanho + 2;
-                    }
-                    if(!verificaGramatica(eachLine, 0)) {
-                        fprintf(stderr, "ERRO GRAMATICAL: palavra na linha %d!", linha);
-                        i = tamanho + 2;
-                    }
-                }
-                j = 0;
-            } else {
-                // monta a palavra letra por letra
-                palavra[j] = caracter;
-                j++;
-            }
+            // monta a palavra letra por letra
+            palavra[j] = caracter;
+            j++;
         }
     }
 
@@ -340,10 +341,6 @@ int whichToken(char *palavra) {
     if(retornoFuncao == -1) // error 'lexico'
         return -1;
 
-    retornoFuncao = isArgumento(palavra);
-    if (retornoFuncao == -1)
-        return -1; // error 'lexico'
-
     retornoFuncao = isHexadecimal(palavra);
     if(retornoFuncao == 1) // is hexadecimal
         return Hexadecimal;
@@ -547,23 +544,32 @@ int isNome(char *palavra) {
 // funcoes para analise de erros
 pointerLine insereToken(pointerLine eachLine, char *palavra, unsigned int linha){
     Token token;
+    pointerLine word;
+
+    // gambiarra para verificar : ADD laco
+    // stderr: erro gramatical
+    // espera-se que depois de instrucao venha um argumento
+    for (word = eachLine; word->next ; word = word->next);
+    if(word->palavra.tipo == Instrucao)
+        if (isArgumento(palavra) != 1)
+            return apagaLista(eachLine);
+
+
 
     // cria um token temporario
     token.palavra = malloc(sizeof(char) * strlen(palavra));
     strcpy(token.palavra,palavra);
     token.tipo = (enum TipoDoToken )whichToken(token.palavra);
     if(token.tipo == -1)
-        return NULL;
+        return apagaLista(eachLine);
 
-    token.linha = linha/2;
+    token.linha = linha;
 
     // insere na lista de tokens para analise de erros gramaticais posteriormente
     pointerLine newToken, next;
 
     // cria o no
     newToken = malloc(sizeof(eachWord));
-    if(!newToken) // erro no malloc
-        return 0;
     newToken->next = NULL;
     newToken->palavra = token;
 
