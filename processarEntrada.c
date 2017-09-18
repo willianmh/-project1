@@ -51,7 +51,6 @@ int processarEntrada(char *entrada, unsigned tamanho) {
 
     // armazena em um lista uma linha de entrada
     pointerLine eachLine;
-    pointerLine word_token;
 
     unsigned linha;
 
