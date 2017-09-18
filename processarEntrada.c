@@ -45,7 +45,7 @@ void imprimeLista(pointerLine inicio);
  *  0 caso nÃ£o haja erro.
  */
 int processarEntrada(char *entrada, unsigned tamanho) {
-    int i, j, k;
+    int i, j;
     char caracter;
     char palavra[1000];
 
